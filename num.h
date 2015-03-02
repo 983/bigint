@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NUM_H_INCLUDED
+#define NUM_H_INCLUDED
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,4 +95,6 @@ num* num_sqrt(num *dst, const num *src);
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

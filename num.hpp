@@ -1,4 +1,5 @@
-#pragma once
+#ifndef NUM_HPP_INCLUDED
+#define NUM_HPP_INCLUDED
 
 #include "num.h"
 
@@ -167,3 +168,5 @@ inline bool operator <= (const Num &a, const Num &b){ return num_cmp(a.data, b.d
 inline bool operator >= (const Num &a, const Num &b){ return num_cmp(a.data, b.data) >= 0; }
 inline bool operator <  (const Num &a, const Num &b){ return num_cmp(a.data, b.data) <  0; }
 inline bool operator >  (const Num &a, const Num &b){ return num_cmp(a.data, b.data) >  0; }
+
+#endif
