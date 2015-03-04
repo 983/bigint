@@ -526,45 +526,7 @@ num* num_add_signed(num *dst, const num *a, int a_neg, const num *b, int b_neg){
         a->words, na, a_neg,
         b->words, nb, b_neg
     );
-/*
-    if (a_neg){
-        if (b_neg){
-            if (na >= nb){
-                dst->size = num_raw_add(dst->words, a->words, na, b->words, nb);
-                dst->neg = 1;
-            }else{
-                dst->size = num_raw_add(dst->words, b->words, nb, a->words, na);
-                dst->neg = 1;
-            }
-        }else{
-            if (num_raw_cmp_abs(a->words, na, b->words, nb) >= 0){
-                dst->size = num_raw_sub(dst->words, a->words, na, b->words, nb);
-                dst->neg = 1;
-            }else{
-                dst->size = num_raw_sub(dst->words, b->words, nb, a->words, na);
-                dst->neg = 0;
-            }
-        }
-    }else{
-        if (b_neg){
-            if (num_raw_cmp_abs(a->words, na, b->words, nb) >= 0){
-                dst->size = num_raw_sub(dst->words, a->words, na, b->words, nb);
-                dst->neg = 0;
-            }else{
-                dst->size = num_raw_sub(dst->words, b->words, nb, a->words, na);
-                dst->neg = 1;
-            }
-        }else{
-            if (na >= nb){
-                dst->size = num_raw_add(dst->words, a->words, na, b->words, nb);
-                dst->neg = 0;
-            }else{
-                dst->size = num_raw_add(dst->words, b->words, nb, a->words, na);
-                dst->neg = 0;
-            }
-        }
-    }
-*/
+
     return dst;
 }
 
