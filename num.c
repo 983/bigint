@@ -470,6 +470,50 @@ void num_from_word(num *dst, num_word a){
     dst->size = num_raw_truncate(dst->words, 1);
 }
 
+int num_raw_add_signed(
+    num_word *dst, int *dst_neg,
+    const num_word *a, int na, int a_neg,
+    const num_word *b, int nb, int b_neg
+){
+    if (a_neg){
+        if (b_neg){
+            if (na >= nb){
+                *dst_neg = 1;
+                return num_raw_add(dst, a, na, b, nb);
+            }else{
+                *dst_neg = 1;
+                return num_raw_add(dst, b, nb, a, na);
+            }
+        }else{
+            if (num_raw_cmp_abs(a, na, b, nb) >= 0){
+                *dst_neg = 1;
+                return num_raw_sub(dst, a, na, b, nb);
+            }else{
+                *dst_neg = 0;
+                return num_raw_sub(dst, b, nb, a, na);
+            }
+        }
+    }else{
+        if (b_neg){
+            if (num_raw_cmp_abs(a, na, b, nb) >= 0){
+                *dst_neg = 0;
+                return num_raw_sub(dst, a, na, b, nb);
+            }else{
+                *dst_neg = 1;
+                return num_raw_sub(dst, b, nb, a, na);
+            }
+        }else{
+            if (na >= nb){
+                *dst_neg = 0;
+                return num_raw_add(dst, a, na, b, nb);
+            }else{
+                *dst_neg = 0;
+                return num_raw_add(dst, b, nb, a, na);
+            }
+        }
+    }
+}
+
 num* num_add_signed(num *dst, const num *a, int a_neg, const num *b, int b_neg){
     int na = a->size;
     int nb = b->size;
@@ -477,7 +521,12 @@ num* num_add_signed(num *dst, const num *a, int a_neg, const num *b, int b_neg){
 
     num_reserve(dst, n);
 
-    /* There must be a prettier way to do this */
+    dst->size = num_raw_add_signed(
+        dst->words, &dst->neg,
+        a->words, na, a_neg,
+        b->words, nb, b_neg
+    );
+/*
     if (a_neg){
         if (b_neg){
             if (na >= nb){
@@ -515,7 +564,7 @@ num* num_add_signed(num *dst, const num *a, int a_neg, const num *b, int b_neg){
             }
         }
     }
-
+*/
     return dst;
 }
 
