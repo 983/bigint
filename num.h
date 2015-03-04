@@ -112,6 +112,7 @@ num* num_pow_mod(
     const num *src_modulus
 );
 
+/* probability for wrong positives is approximately 1/4^n_tests */
 int num_is_probable_prime(const num *n, int n_tests, num_rand_func rand_func);
 
 num* num_pow_word(num *dst, const num *src, num_word exponent);
