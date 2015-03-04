@@ -45,12 +45,6 @@ struct Num {
             numerator.data, denominator.data);
     }
 
-    static Num gcd(const Num &a, const Num &b){
-        Num c;
-        num_gcd(c.data, a.data, b.data);
-        return c;
-    }
-
     void write(char *buf, int n, int dst_base = 10) const {
         num_write_base(buf, n, data, dst_base);
     }
@@ -63,12 +57,6 @@ struct Num {
         s << buf;
         free(buf);
         return s;
-    }
-
-    Num sqrt() const {
-        Num b;
-        num_sqrt(b.data, data);
-        return b;
     }
 
     Num& operator <<= (int shift){
@@ -92,9 +80,7 @@ struct Num {
     }
 
     Num& operator *= (const Num &b){
-        Num c;
-        num_mul(c.data, data, b.data);
-        *this = c;
+        num_mul(data, data, b.data);
         return *this;
     }
 
@@ -105,12 +91,83 @@ struct Num {
         return *this;
     }
 
-
     Num& operator %= (const Num &b){
         Num quotient, remainder;
         div_mod(quotient, remainder, *this, b);
         *this = remainder;
         return *this;
+    }
+
+    Num& operator ++ (){
+        num_add_word(data, data, 1);
+        return *this;
+    }
+
+    Num& operator -- (){
+        num_sub_word(data, data, 1);
+        return *this;
+    }
+
+    Num& set_bit(int bit_index){
+        num_set_bit(data, bit_index);
+        return *this;
+    }
+
+    Num& clr_bit(int bit_index){
+        num_clr_bit(data, bit_index);
+        return *this;
+    }
+
+    num_word get_bit(int bit_index) const {
+        return num_get_bit(data, bit_index);
+    }
+
+    int bitlength() const {
+        return num_bitlength(data);
+    }
+
+    int count_trailing_zeros() const {
+        return num_count_trailing_zeros(data);
+    }
+
+    bool is_probable_prime(int n_tests, num_rand_func rand_func) const {
+        return num_is_probable_prime(data, n_tests, rand_func);
+    }
+
+    Num sqrt() const {
+        Num b;
+        num_sqrt(b.data, data);
+        return b;
+    }
+
+    Num pow(num_word exponent){
+        Num b;
+        num_pow_word(b.data, data, exponent);
+        return b;
+    }
+
+    static Num gcd(const Num &a, const Num &b){
+        Num c;
+        num_gcd(c.data, a.data, b.data);
+        return c;
+    }
+
+    static Num rand_bits(int n_bits, num_rand_func rand_func){
+        Num b;
+        num_rand_bits(b.data, n_bits, rand_func);
+        return b;
+    }
+
+    static Num rand_inclusive(const Num &n, num_rand_func rand_func){
+        Num b;
+        num_rand_inclusive(b.data, n.data, rand_func);
+        return b;
+    }
+
+    static Num rand_exclusive(const Num &n, num_rand_func rand_func){
+        Num b;
+        num_rand_exclusive(b.data, n.data, rand_func);
+        return b;
     }
 };
 

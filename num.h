@@ -15,8 +15,9 @@ typedef uint32_t num_word;
 
 #define NUM_WORD_BITS ((int)(sizeof(num_word) * CHAR_BIT))
 #define NUM_WORD_MAX ((num_word)-1)
+#define NUM_HALF_WORD_MAX (NUM_WORD_MAX >> NUM_WORD_BITS / 2)
 
-#define NUM_WORD_LO(a) ((a) & (NUM_WORD_MAX >> NUM_WORD_BITS / 2))
+#define NUM_WORD_LO(a) ((a) & NUM_HALF_WORD_MAX)
 #define NUM_WORD_HI(a) ((a) >> sizeof(a) * CHAR_BIT / 2)
 
 #define NUM_MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -34,6 +35,8 @@ typedef struct num {
     int neg, size, capacity;
 } num;
 
+typedef void (*num_rand_func)(uint8_t *dst, int n);
+
 num_word num_word_mul_lo(num_word a, num_word b);
 num_word num_word_mul_hi(num_word a, num_word b);
 
@@ -45,24 +48,27 @@ num_word num_word_from_char(char c);
 int num_word_bitlength(num_word a);
 int num_word_count_trailing_zeros(num_word a);
 
-void num_init(num *a);
-void num_reserve(num *a, int capacity);
+num* num_init(num *a);
+num* num_reserve(num *a, int capacity);
 void num_free(num *a);
 
 int num_cmp_abs(const num *a, const num *b);
 int num_cmp(const num *a, const num *b);
+int num_cmp_abs_word(const num *a, num_word b);
+
 num* num_cpy(num *dst, const num *src);
-num* num_set_bit(num *dst, int bit_index);
+
+num*     num_clr_bit(num *dst, int bit_index);
+num*     num_set_bit(num *dst, int bit_index);
+num_word num_get_bit(const num *src, int bit_index);
+num* num_mul(num *dst, const num *a, const num *b);
+
 int num_count_digits(const char *src);
-
-void num_mul_add(num *dst, const num *a, const num *b);
-void num_mul(num *dst, const num *a, const num *b);
-
 int num_digits_bound(int n_digits_src, double src_base, double dst_base);
 int num_write_size(const num *a, double dst_base);
-void num_from_str_base(num *dst, const char *src, int src_base);
-void num_from_int(num *dst, int src);
-void num_from_word(num *dst, num_word a);
+num* num_from_str_base(num *dst, const char *src, int src_base);
+num* num_from_int(num *dst, int src);
+num* num_from_word(num *dst, num_word a);
 
 num* num_add_signed(num *dst, const num *a, int a_neg, const num *b, int b_neg);
 num* num_add(num *dst, const num *a, const num *b);
@@ -94,6 +100,21 @@ num* num_div_mod_half_word(
 
 num* num_gcd(num *dst, const num *src_a, const num *src_b);
 num* num_sqrt(num *dst, const num *src);
+
+num* num_rand_bits(num *dst, int n_bits, num_rand_func rand_func);
+num* num_rand_inclusive(num *dst, const num *n, num_rand_func rand_func);
+num* num_rand_exclusive(num *dst, const num *n, num_rand_func rand_func);
+
+num* num_pow_mod(
+    num *dst,
+    const num *src_base,
+    const num *src_exponent,
+    const num *src_modulus
+);
+
+int num_is_probable_prime(const num *n, int n_tests, num_rand_func rand_func);
+
+num* num_pow_word(num *dst, const num *src, num_word exponent);
 
 #ifdef __cplusplus
 }

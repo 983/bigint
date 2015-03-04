@@ -89,23 +89,25 @@ int num_word_count_trailing_zeros(num_word a){
     return NUM_WORD_BITS;
 }
 
-void num_init(num *a){
-    a->words = NULL;
-    a->neg = a->size = a->capacity = 0;
+num* num_init(num *dst){
+    dst->words = NULL;
+    dst->neg = dst->size = dst->capacity = 0;
+    return dst;
 }
 
-void num_reserve(num *a, int capacity){
-    if (a->capacity >= capacity) return;
-    a->capacity = capacity;
-    a->words = (num_word*)realloc(a->words, capacity * sizeof(num_word));
+num* num_reserve(num *dst, int capacity){
+    if (dst->capacity >= capacity) return dst;
+    dst->capacity = capacity;
+    dst->words = (num_word*)realloc(dst->words, capacity * sizeof(*dst->words));
     /* out of memory? sorry :( */
-    assert(a->words != NULL);
-    assert(a->size <= capacity);
+    assert(dst->words != NULL);
+    assert(dst->size <= capacity);
+    return dst;
 }
 
-void num_free(num *a){
-    free(a->words);
-    num_init(a);
+void num_free(num *dst){
+    free(dst->words);
+    num_init(dst);
 }
 
 int num_raw_cmp_abs(const num_word *a, int na, const num_word *b, int nb){
@@ -143,33 +145,64 @@ int num_cmp(const num *a, const num *b){
     return num_raw_cmp(a->words, a->size, a->neg, b->words, b->size, b->neg);
 }
 
-num* num_cpy(num *dst, const num *src){
-    int i;
-
-    num_reserve(dst, src->size);
-    for (i = 0; i < src->size; i++) dst->words[i] = src->words[i];
-    dst->size = src->size;
-    dst->neg = src->neg;
-    assert(num_cmp(src, dst) == 0);
-
-    return dst;
+int num_cmp_abs_word(const num *a, num_word b){
+    return num_raw_cmp_abs(a->words, a->size, &b, 1);
 }
 
-num* num_set_bit(num *dst, int bit_index){
-    int word_index = bit_index / NUM_WORD_BITS;
-    int i, n = word_index + 1;
+void num_raw_zero(num_word *dst, int from, int to){
+    if (from >= to) return;
+    memset(dst + from, 0, (to - from) * sizeof(*dst));
+}
 
-    num_reserve(dst, n);
-    for (i = dst->size; i < n; i++) dst->words[i] = 0;
-    dst->size = NUM_MAX(dst->size, n);
-    dst->words[word_index] |= ((num_word)1) << bit_index % NUM_WORD_BITS;
+int num_raw_cpy(num_word *dst, const num_word *src, int n){
+    memcpy(dst, src, n * sizeof(*src));
+    return n;
+}
 
+num* num_cpy(num *dst, const num *src){
+    if (src == dst) return dst;
+    num_reserve(dst, src->size);
+    dst->size = num_raw_cpy(dst->words, src->words, src->size);
+    dst->neg = src->neg;
+    assert(num_cmp(src, dst) == 0);
     return dst;
 }
 
 int num_raw_truncate(const num_word *a, int n){
     while (n > 0 && a[n - 1] == 0) n--;
     return n;
+}
+
+num* num_clr_bit(num *dst, int bit_index){
+    int word_index = bit_index / NUM_WORD_BITS;
+    bit_index %= NUM_WORD_BITS;
+
+    if (word_index >= dst->size) return dst;
+
+    dst->words[word_index] &= NUM_WORD_MAX ^ (((num_word)1) << bit_index);
+
+    dst->size = num_raw_truncate(dst->words, dst->size);
+    return dst;
+}
+
+num* num_set_bit(num *dst, int bit_index){
+    int word_index = bit_index / NUM_WORD_BITS;
+    int n = word_index + 1;
+
+    num_reserve(dst, n);
+    num_raw_zero(dst->words, dst->size, n);
+    dst->size = NUM_MAX(dst->size, n);
+    dst->words[word_index] |= ((num_word)1) << bit_index % NUM_WORD_BITS;
+
+    return dst;
+}
+
+num_word num_get_bit(const num *src, int bit_index){
+    int i = bit_index / NUM_WORD_BITS;
+
+    if (src->size <= i) return 0;
+
+    return (src->words[i] >> bit_index % NUM_WORD_BITS) & 1;
 }
 
 int num_raw_mul_word_add(
@@ -328,26 +361,6 @@ int num_raw_sub(
     return num_raw_truncate(dst, i);
 }
 
-void num_mul_add(num *dst, const num *a, const num *b){
-    int na = a->size;
-    int nb = b->size;
-    int i, n = na + nb;
-
-    if (na == 0 || nb == 0){
-        dst->size = 0;
-        return;
-    }
-
-    assert(dst != a);
-    assert(dst != b);
-
-    num_reserve(dst, n);
-    for (i = dst->size; i < n; i++) dst->words[i] = 0;
-
-    dst->size = num_raw_mul_add(dst->words, a->words, na, b->words, nb);
-    dst->neg = a->neg ^ b->neg;
-}
-
 int num_raw_mul_karatsuba(
     num_word *dst,
     const num_word *a, int na,
@@ -355,14 +368,14 @@ int num_raw_mul_karatsuba(
     num_word *tmp
 ){
     /* so many */
-    int i, n, k, m, m2;
+    int n, k, m, m2;
     const num_word *lo1, *hi1, *lo2, *hi2;
     int nlo1, nhi1, nlo2, nhi2;
     num_word *lo1hi1, *lo2hi2, *z0, *z1, *z2;
     int nlo1hi1, nlo2hi2, nz0, nz1, nz2;
 
     if (na < NUM_KARATSUBA_WORD_THRESHOLD && nb < NUM_KARATSUBA_WORD_THRESHOLD){
-        for (i = 0; i < na + nb; i++) dst[i] = 0;
+        num_raw_zero(dst, 0, na + nb);
         return num_raw_mul_add(dst, a, na, b, nb);
     }
 
@@ -398,8 +411,8 @@ int num_raw_mul_karatsuba(
 
     n = nz0;
 
-    for (i = 0; i < n; i++) dst[i] = z0[i];
-    for (i = n; i < na + nb; i++) dst[i] = 0;
+    num_raw_cpy(dst, z0, n);
+    num_raw_zero(dst, n, na + nb);
 
     n = num_raw_add(dst + m2*1, dst + m2*1, NUM_MAX(n - m2, 0), z1, nz1);
     n = num_raw_add(dst + m2*2, dst + m2*2, NUM_MAX(n - m2, 0), z2, nz2);
@@ -407,26 +420,23 @@ int num_raw_mul_karatsuba(
     return num_raw_truncate(dst, n + m2*2);
 }
 
-void num_mul(num *dst, const num *a, const num *b){
+num* num_mul(num *dst, const num *a, const num *b){
     int na = a->size;
     int nb = b->size;
     int n = na + nb;
-    num_word *wa = a->words;
-    num_word *wb = b->words;
     num_word *tmp;
-
-    assert(dst != a);
-    assert(dst != b);
 
     num_reserve(dst, n);
 
     /* bound found through experimentation */
-    tmp = (num_word*)malloc(sizeof(*tmp)*(NUM_MAX(na, nb) * 11 + 180));
+    tmp = (num_word*)malloc(sizeof(*tmp)*(NUM_MAX(na, nb) * 11 + 180 + n));
 
-    dst->size = num_raw_mul_karatsuba(dst->words, wa, na, wb, nb, tmp);
+    dst->size = num_raw_mul_karatsuba(tmp, a->words, na, b->words, nb, tmp + n);
+    num_raw_cpy(dst->words, tmp, dst->size);
     dst->neg = a->neg ^ b->neg;
 
     free(tmp);
+    return dst;
 }
 
 int num_digits_bound(int n_digits_src, double src_base, double dst_base){
@@ -440,8 +450,8 @@ int num_write_size(const num *a, double dst_base){
         + sizeof('-') + sizeof('\0');
 }
 
-void num_from_str_base(num *dst, const char *src, int src_base){
-    int i, n_digits_src, n_digits_dst;
+num* num_from_str_base(num *dst, const char *src, int src_base){
+    int n_digits_src, n_digits_dst;
     /* yes, this will fit, up to 2^10 bit num_words */
     double dst_base = pow(2.0, NUM_WORD_BITS);
 
@@ -450,28 +460,31 @@ void num_from_str_base(num *dst, const char *src, int src_base){
 
     num_reserve(dst, n_digits_dst);
     dst->size = n_digits_dst;
-    for (i = 0; i < n_digits_dst; i++) dst->words[i] = 0;
+    num_raw_zero(dst->words, 0, n_digits_dst);
 
     dst->size = num_raw_from_str_base(dst->words, src, src_base);
     dst->neg = *src == '-';
+    return dst;
 }
 
-void num_from_int(num *dst, int src){
+num* num_from_int(num *dst, int src){
     /* be careful with -INT_MIN which does not fit into int */
     unsigned int x = src >= 0 ? src : -src;
-    int i = 0, n = NUM_MAX(1, sizeof(x)/sizeof(num_word));
+    int n = NUM_MAX(1, sizeof(x)/sizeof(num_word));
     num_reserve(dst, n);
-    for (i = 0; i < n; i++) dst->words[i] = 0;
+    num_raw_zero(dst->words, 0, n);
     memcpy(dst->words, &x, sizeof(x));
     dst->neg = src < 0;
     dst->size = num_raw_truncate(dst->words, n);
+    return dst;
 }
 
-void num_from_word(num *dst, num_word a){
+num* num_from_word(num *dst, num_word a){
     num_reserve(dst, 1);
     dst->neg = 0;
     dst->words[0] = a;
     dst->size = num_raw_truncate(dst->words, 1);
+    return dst;
 }
 
 int num_raw_add_signed(
@@ -696,6 +709,19 @@ num* num_div_mod(
         return dst_quotient;
     }
 
+    /* fast path for half word size */
+    if (src_denominator->size == 1 &&
+        src_denominator->words[0] <= NUM_HALF_WORD_MAX
+    ){
+        num_word rem;
+        num_cpy(quotient, src_numerator);
+        num_div_mod_half_word(quotient, &rem, src_denominator->words[0]);
+        num_from_word(remainder, rem);
+        quotient->neg = src_numerator->neg ^ src_denominator->neg;
+        remainder->neg = src_numerator->neg;
+        return dst_quotient;
+    }
+
     num_cpy(remainder, src_numerator);
     remainder->neg = 0;
     quotient->size = 0;
@@ -733,7 +759,7 @@ num* num_div_mod_half_word(
     num_word parts[2], div_word, mod_word, remainder = 0;
 
     assert(denominator != 0);
-    assert(denominator <= (NUM_WORD_MAX >> NUM_WORD_BITS / 2));
+    assert(denominator <= NUM_HALF_WORD_MAX);
 
     for (i = dst->size - 1; i >= 0; i--){
         num_word dst_word = 0;
@@ -875,5 +901,151 @@ char* num_write_base(char *dst, int n, const num *a, num_word base){
     if (a->neg) if (i < n) dst[i++] = '-';
     NUM_REVERSE(char, dst, i);
 
+    return dst;
+}
+
+num* num_rand_bits(num *dst, int n_bits, num_rand_func rand_func){
+    int n_word_bits = n_bits % NUM_WORD_BITS;
+    int n_words = n_bits / NUM_WORD_BITS + (n_word_bits != 0);
+
+    num_reserve(dst, n_words);
+
+    rand_func((uint8_t*)dst->words, sizeof(*dst->words) * n_words);
+
+    if (n_word_bits){
+        dst->words[n_words - 1] >>= NUM_WORD_BITS - n_word_bits;
+    }
+
+    dst->size = num_raw_truncate(dst->words, n_words);
+    return dst;
+}
+
+num* num_rand_inclusive(num *dst, const num *n, num_rand_func rand_func){
+    int n_bits = num_bitlength(n);
+
+    do {
+        num_rand_bits(dst, n_bits, rand_func);
+    } while (num_cmp(dst, n) > 0);
+
+    return dst;
+}
+
+num* num_rand_exclusive(num *dst, const num *n, num_rand_func rand_func){
+    int n_bits = num_bitlength(n);
+
+    do {
+        num_rand_bits(dst, n_bits, rand_func);
+    } while (num_cmp(dst, n) >= 0);
+
+    return dst;
+}
+
+num* num_pow_mod(
+    num *dst,
+    const num *src_base,
+    const num *src_exponent,
+    const num *src_modulus
+){
+    num base[1], exponent[1], tmp[1], unused[1], modulus[1];
+
+    num_init(base);
+    num_init(exponent);
+    num_init(tmp);
+    num_init(unused);
+    num_init(modulus);
+
+    num_cpy(exponent, src_exponent);
+    num_cpy(modulus, src_modulus);
+    num_div_mod(unused, base, src_base, modulus);
+    num_from_word(dst, 1);
+
+    for (; exponent->size; num_shift_right(exponent, exponent, 1)){
+        if (num_get_bit(exponent, 0)){
+            num_mul(tmp, dst, base);
+            num_div_mod(unused, dst, tmp, modulus);
+        }
+        num_mul(tmp, base, base);
+        num_div_mod(unused, base, tmp, modulus);
+    }
+
+    num_free(base);
+    num_free(exponent);
+    num_free(tmp);
+    num_free(unused);
+    num_free(modulus);
+    return dst;
+}
+
+int num_is_probable_prime(const num *n, int n_tests, num_rand_func rand_func){
+    num a[1], d[1], x[1], two[1], n_minus_one[1], n_minus_three[1];
+    int i, shift;
+
+    /* divisible by 2, not prime */
+    if (num_get_bit(n, 0) == 0) return 0;
+
+    /* 1, 3 are prime */
+    if (num_cmp_abs_word(n, 3) <= 0) return 1;
+
+    num_init(a);
+    num_init(d);
+    num_init(x);
+    num_init(two);
+    num_init(n_minus_one);
+    num_init(n_minus_three);
+
+    num_from_word(two, 2);
+
+    num_sub_word(n_minus_one, n, 1);
+    num_sub_word(n_minus_three, n, 3);
+
+    shift = num_count_trailing_zeros(n_minus_one);
+    num_shift_right(d, n_minus_one, shift);
+
+    do {
+        num_rand_inclusive(a, n_minus_three, rand_func);
+        num_add_word(a, a, 2);
+        num_pow_mod(x, a, d, n);
+
+        if (num_cmp_abs_word(x, 1) == 0) continue;
+        if (num_cmp(x, n_minus_one) == 0) continue;
+
+        for (i = 1; i < shift; i++){
+            num_pow_mod(x, x, two, n);
+            if (num_cmp_abs_word(x, 1) == 0) return 0;
+            if (num_cmp(x, n_minus_one) == 0) break;
+        }
+
+        if (i == shift) return 0;
+    } while (--n_tests);
+
+    num_free(a);
+    num_free(d);
+    num_free(x);
+    num_free(two);
+    num_free(n_minus_one);
+    num_free(n_minus_three);
+    return 1;
+}
+
+num* num_pow_word(num *dst, const num *base, num_word exponent){
+    num result[1], p[1];
+
+    num_init(p);
+    num_init(result);
+
+    num_cpy(p, base);
+    num_from_word(result, 1);
+
+    for (; exponent; exponent >>= 1){
+        if (exponent & 1){
+            num_mul(result, result, p);
+            exponent--;
+        }
+        num_mul(p, p, p);
+    }
+
+    num_cpy(dst, result);
+    num_free(p);
+    num_free(result);
     return dst;
 }
