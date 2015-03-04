@@ -127,16 +127,20 @@ int num_cmp_abs(const num *a, const num *b){
     return num_raw_cmp_abs(a->words, a->size, b->words, b->size);
 }
 
-int num_cmp(const num *a, const num *b){
-    int na = a->size;
-    int nb = b->size;
-
+int num_raw_cmp(
+    const num_word *a, int na, int a_neg,
+    const num_word *b, int nb, int b_neg
+){
     if (na == 0 && nb == 0) return 0;
 
-    if (!a->neg && !b->neg) return num_cmp_abs(a, b);
-    if ( a->neg &&  b->neg) return num_cmp_abs(b, a);
+    if (!a_neg && !b_neg) return num_raw_cmp_abs(a, na, b, nb);
+    if ( a_neg &&  b_neg) return num_raw_cmp_abs(b, na, a, nb);
 
-    return (!a->neg && b->neg) ? +1 : -1;
+    return (!a_neg && b_neg) ? +1 : -1;
+}
+
+int num_cmp(const num *a, const num *b){
+    return num_raw_cmp(a->words, a->size, a->neg, b->words, b->size, b->neg);
 }
 
 num* num_cpy(num *dst, const num *src){
@@ -536,6 +540,28 @@ num* num_add(num *dst, const num *a, const num *b){
 
 num* num_sub(num *dst, const num *a, const num *b){
     return num_add_signed(dst, a, a->neg, b, !b->neg);
+}
+
+num* num_add_word_signed(num *dst, const num *src_a, num_word b, int b_neg){
+    int na = src_a->size;
+
+    num_reserve(dst, na + 1);
+
+    dst->size = num_raw_add_signed(
+        dst->words, &dst->neg,
+        src_a->words, na, src_a->neg,
+        &b, 1, b_neg
+    );
+
+    return dst;
+}
+
+num* num_add_word(num *dst, const num *src_a, num_word b){
+    return num_add_word_signed(dst, src_a, b, 0);
+}
+
+num* num_sub_word(num *dst, const num *src_a, num_word b){
+    return num_add_word_signed(dst, src_a, b, 1);
 }
 
 int num_raw_shift_left(

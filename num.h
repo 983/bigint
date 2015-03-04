@@ -65,9 +65,11 @@ void num_from_int(num *dst, int src);
 void num_from_word(num *dst, num_word a);
 
 num* num_add_signed(num *dst, const num *a, int a_neg, const num *b, int b_neg);
-
 num* num_add(num *dst, const num *a, const num *b);
 num* num_sub(num *dst, const num *a, const num *b);
+num* num_add_word_signed(num *dst, const num *src_a, num_word b, int b_neg);
+num* num_add_word(num *dst, const num *src_a, num_word b);
+num* num_sub_word(num *dst, const num *src_a, num_word b);
 
 char* num_write_base(char *dst, int n, const num *a, num_word base);
 
