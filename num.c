@@ -79,7 +79,7 @@ num_word num_word_from_char(char c){
 
 int num_word_bitlength(num_word a){
     int i;
-    for (i = NUM_WORD_BITS - 1; i >= 0; i--) if ((a >> i) & 1) return i;
+    for (i = NUM_WORD_BITS - 1; i >= 0; i--) if ((a >> i) & 1) return i + 1;
     return 0;
 }
 
