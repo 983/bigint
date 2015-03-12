@@ -1,4 +1,4 @@
-#include "num.h"
+#include "bigint.h"
 
 #include <stdio.h>
 
@@ -6,30 +6,30 @@ int main(){
     char buf[65536];
 
     /* neat trick to avoid having to write &a, &b, &c everywhere */
-    num a[1], b[1], c[1];
+    bigint a[1], b[1], c[1];
 
-    /* nums have to be inited (or memset'ed to 0) */
-    num_init(a);
-    num_init(b);
-    num_init(c);
+    /* bigints have to be inited (or memset'ed to 0) */
+    bigint_init(a);
+    bigint_init(b);
+    bigint_init(c);
 
-    /* create num from string, bases 2 to 36 are allowed */
-    num_from_str_base(a, "123456789", 10);
-    num_from_str_base(b, "987654321", 10);
+    /* create bigint from string, bases 2 to 36 are allowed */
+    bigint_from_str_base(a, "123456789", 10);
+    bigint_from_str_base(b, "987654321", 10);
 
     /* c = a * b */
     /* first parameter is destination parameter */
-    num_mul(c, a, b);
+    bigint_mul(c, a, b);
 
     /* bases 2 to 36 are allowed */
-    num_write_base(buf, sizeof(buf), c, 10);
+    bigint_write_base(buf, sizeof(buf), c, 10);
 
     puts(buf);
 
-    /* nums have to be free'd */
-    num_free(a);
-    num_free(b);
-    num_free(c);
+    /* bigints have to be free'd */
+    bigint_free(a);
+    bigint_free(b);
+    bigint_free(c);
 
     /* See tests.c for all possible operations */
 

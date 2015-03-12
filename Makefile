@@ -1,16 +1,16 @@
 FLAGS = -lm -O3 -Wall -Wextra -Wpedantic
 
-all: tests c_examples cpp_examples num.o
-	rm num.o
+all: tests c_examples cpp_examples bigint.o
+	rm bigint.o
 
-num.o:
-	gcc -c num.c -o num.o $(FLAGS)
+bigint.o:
+	gcc -c bigint.c -o bigint.o $(FLAGS)
 
-tests: num.o
-	gcc tests.c num.o -o tests $(FLAGS)
+tests: bigint.o
+	gcc tests.c bigint.o -o tests $(FLAGS)
 
-c_examples: num.o
-	gcc c_examples.c num.o -o c_examples $(FLAGS)
+c_examples: bigint.o
+	gcc c_examples.c bigint.o -o c_examples $(FLAGS)
 
-cpp_examples: num.o
-	g++ cpp_examples.cpp num.o -o cpp_examples $(FLAGS)
+cpp_examples: bigint.o
+	g++ cpp_examples.cpp bigint.o -o cpp_examples $(FLAGS)

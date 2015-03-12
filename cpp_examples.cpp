@@ -1,4 +1,4 @@
-#include "num.hpp"
+#include "bigint.hpp"
 
 #include <assert.h>
 #include <iostream>
@@ -17,16 +17,16 @@ void not_secure_random(uint8_t *dst, int n){
 }
 
 int main(){
-    // Nums can be created from strings or from integers
-    Num a = "-1137531041259095389425522063651335971086542522289";
-    Num b = "-9214001518046086468566115579527473139501";
+    // BigInts can be created from strings or from integers
+    BigInt a = "-1137531041259095389425522063651335971086542522289";
+    BigInt b = "-9214001518046086468566115579527473139501";
 
     // Available operators:
     // +, -, *, /, %, <<, >>
     // +=, -=, *=, /=, %=, <<=, >>=, ++, --
     // ==, !=, <=, >=, <, >
-    Num c = a / b;
-    Num d = b * c;
+    BigInt c = a / b;
+    BigInt d = b * c;
     assert(c == 123456789);
     assert(a == d);
 
@@ -35,7 +35,7 @@ int main(){
     d.write(std::cout) << std::endl;
 
     // find the biggest probable prime less than 10^50
-    Num p = Num(10).pow(50) - 1;
+    BigInt p = BigInt(10).pow(50) - 1;
 
     for (int i = 0; i < 100; i++){
         if (p.is_probable_prime(10, not_secure_random)){
