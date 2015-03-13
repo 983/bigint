@@ -750,22 +750,25 @@ int bigint_count_trailing_zeros(const bigint *a){
 bigint* bigint_div_mod(
     bigint *dst_quotient,
     bigint *dst_remainder,
-    const bigint *src_biginterator,
+    const bigint *src_numerator,
     const bigint *src_denominator
 ){
     int shift;
+    int src_numerator_neg = src_numerator->neg;
+    int src_denominator_neg = src_denominator->neg;
     bigint denominator[1], *remainder = dst_remainder, *quotient = dst_quotient;
 
     if (src_denominator->size == 0) return NULL;
 
     /* fast path for native word size */
-    if (src_biginterator->size == 1 && src_denominator->size == 1){
-        bigint_word a = src_biginterator->words[0];
+    if (src_numerator->size == 1 && src_denominator->size == 1){
+        /* make sure this is not overwritten */
+        bigint_word a = src_numerator->words[0];
         bigint_word b = src_denominator->words[0];
         bigint_from_word(quotient, a / b);
         bigint_from_word(remainder, a % b);
-        quotient->neg = src_biginterator->neg ^ src_denominator->neg;
-        remainder->neg = src_biginterator->neg;
+        quotient->neg = src_numerator_neg ^ src_denominator_neg;
+        remainder->neg = src_numerator_neg;
         return dst_quotient;
     }
 
@@ -774,15 +777,15 @@ bigint* bigint_div_mod(
         src_denominator->words[0] <= BIGINT_HALF_WORD_MAX
     ){
         bigint_word rem;
-        bigint_cpy(quotient, src_biginterator);
+        bigint_cpy(quotient, src_numerator);
         bigint_div_mod_half_word(quotient, &rem, src_denominator->words[0]);
         bigint_from_word(remainder, rem);
-        quotient->neg = src_biginterator->neg ^ src_denominator->neg;
-        remainder->neg = src_biginterator->neg;
+        quotient->neg = src_numerator_neg ^ src_denominator_neg;
+        remainder->neg = src_numerator_neg;
         return dst_quotient;
     }
 
-    bigint_cpy(remainder, src_biginterator);
+    bigint_cpy(remainder, src_numerator);
     remainder->neg = 0;
     quotient->size = 0;
 
@@ -805,8 +808,8 @@ bigint* bigint_div_mod(
         bigint_free(denominator);
     }
 
-    quotient->neg = src_biginterator->neg ^ src_denominator->neg;
-    remainder->neg = src_biginterator->neg;
+    quotient->neg = src_numerator_neg ^ src_denominator_neg;
+    remainder->neg = src_numerator_neg;
     return dst_quotient;
 }
 
