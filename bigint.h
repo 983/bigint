@@ -49,6 +49,10 @@ bigint_word bigint_word_from_char(char c);
 int bigint_word_bitlength(bigint_word a);
 int bigint_word_count_trailing_zeros(bigint_word a);
 
+bigint_word bigint_word_gcd(bigint_word a, bigint_word b);
+unsigned bigint_uint_gcd(unsigned a, unsigned b);
+int bigint_int_gcd(int a, int b);
+
 bigint* bigint_init(bigint *a);
 bigint* bigint_reserve(bigint *a, int capacity);
 void bigint_free(bigint *a);

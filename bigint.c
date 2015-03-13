@@ -97,6 +97,28 @@ int bigint_word_count_trailing_zeros(bigint_word a){
     return BIGINT_WORD_BITS;
 }
 
+bigint_word bigint_word_gcd(bigint_word a, bigint_word b){
+    while (1){
+        if (!a) return b;
+        b %= a;
+        if (!b) return a;
+        a %= b;
+    }
+}
+
+unsigned bigint_uint_gcd(unsigned a, unsigned b){
+    while (1){
+        if (!a) return b;
+        b %= a;
+        if (!b) return a;
+        a %= b;
+    }
+}
+
+int bigint_int_gcd(int a, int b){
+    return bigint_uint_gcd(BIGINT_INT_ABS(a), BIGINT_INT_ABS(b));
+}
+
 bigint* bigint_init(bigint *dst){
     dst->words = NULL;
     dst->neg = dst->size = dst->capacity = 0;
@@ -851,6 +873,11 @@ bigint* bigint_gcd(bigint *dst, const bigint *src_a, const bigint *src_b){
         bigint_cpy(dst, src_a);
         dst->neg = 0;
         return dst;
+    }
+
+    if (src_a->size == 1 && src_b->size == 1){
+        bigint_word word = bigint_word_gcd(src_a->words[0], src_b->words[0]);
+        return bigint_from_word(dst, word);
     }
 
     bigint_init(a);

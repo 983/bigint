@@ -6,17 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-int gcd(int a, int b){
-    if (a < 0) a = -a;
-    if (b < 0) b = -b;
-    while (a){
-        int tmp = a;
-        a = b % a;
-        b = tmp;
-    }
-    return b;
-}
-
 int main(){
     int i, j;
     char buf[65536];
@@ -94,7 +83,7 @@ int main(){
         }
 
         bigint_from_int(e + 5, sqrt(x > 0 ? x : -x));
-        bigint_from_int(e + 6, gcd(x, y));
+        bigint_from_int(e + 6, bigint_int_gcd(x, y));
 
         bigint_cpy(c, a);
         bigint_shift_left(a, a, shift);
@@ -113,7 +102,7 @@ int main(){
         for (j = 0; j < 7; j++){
             if (y == 0 && (j == 3 || j == 4)) continue;
             if (bigint_cmp(e + j, e + j + 10) != 0){
-                printf("i %i, j %i failed for bigintbers %i, %i\n", i, j, x, y);
+                printf("i %i, j %i failed for bigints %i, %i\n", i, j, x, y);
             }
             assert(bigint_cmp(e + j, e + j + 10) == 0);
         }
