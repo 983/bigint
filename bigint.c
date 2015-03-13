@@ -407,7 +407,10 @@ int bigint_raw_mul_karatsuba(
     bigint_word *lo1hi1, *lo2hi2, *z0, *z1, *z2;
     int nlo1hi1, nlo2hi2, nz0, nz1, nz2;
 
-    if (na < BIGINT_KARATSUBA_WORD_THRESHOLD && nb < BIGINT_KARATSUBA_WORD_THRESHOLD){
+    if (
+        na < BIGINT_KARATSUBA_WORD_THRESHOLD &&
+        nb < BIGINT_KARATSUBA_WORD_THRESHOLD
+    ){
         bigint_raw_zero(dst, 0, na + nb);
         return bigint_raw_mul_add(dst, a, na, b, nb);
     }
@@ -461,14 +464,26 @@ bigint* bigint_mul(bigint *dst, const bigint *a, const bigint *b){
 
     bigint_reserve(dst, n);
 
-    /* bound found through experimentation */
-    tmp = (bigint_word*)malloc(sizeof(*tmp)*(BIGINT_MAX(na, nb) * 11 + 180 + n));
+    /* bigint_raw_mul_karatsuba already has this fastpath */
+    /* but this way we avoid allocating tmp */
+    if (
+        dst != a &&
+        dst != b &&
+        na < BIGINT_KARATSUBA_WORD_THRESHOLD &&
+        nb < BIGINT_KARATSUBA_WORD_THRESHOLD
+    ){
+        bigint_raw_zero(dst->words, 0, na + nb);
+        dst->size = bigint_raw_mul_add(dst->words, a->words, na, b->words, nb);
+    }else{
+        int magical_upper_bound = BIGINT_MAX(na, nb) * 11 + 180 + n;
+        tmp = (bigint_word*)malloc(magical_upper_bound * sizeof(*tmp));
 
-    dst->size = bigint_raw_mul_karatsuba(tmp, a->words, na, b->words, nb, tmp + n);
-    bigint_raw_cpy(dst->words, tmp, dst->size);
+        dst->size = bigint_raw_mul_karatsuba(tmp, a->words, na, b->words, nb, tmp + n);
+        bigint_raw_cpy(dst->words, tmp, dst->size);
+        free(tmp);
+    }
+
     dst->neg = a->neg ^ b->neg;
-
-    free(tmp);
     return dst;
 }
 
