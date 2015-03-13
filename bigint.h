@@ -22,6 +22,7 @@ typedef uint32_t bigint_word;
 
 #define BIGINT_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define BIGINT_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define BIGINT_INT_ABS(a) ((a) < 0 ? -(unsigned int)(a) : (unsigned int)(a))
 
 #define BIGINT_SWAP(type, a, b) do { type _tmp = a; a = b; b = _tmp; } while (0)
 
@@ -67,6 +68,7 @@ int bigint_count_digits(const char *src);
 int bigint_digits_bound(int n_digits_src, double src_base, double dst_base);
 int bigint_write_size(const bigint *a, double dst_base);
 bigint* bigint_from_str_base(bigint *dst, const char *src, int src_base);
+bigint* bigint_from_str(bigint *dst, const char *src);
 bigint* bigint_from_int(bigint *dst, int src);
 bigint* bigint_from_word(bigint *dst, bigint_word a);
 
@@ -77,7 +79,16 @@ bigint* bigint_add_word_signed(bigint *dst, const bigint *src_a, bigint_word b, 
 bigint* bigint_add_word(bigint *dst, const bigint *src_a, bigint_word b);
 bigint* bigint_sub_word(bigint *dst, const bigint *src_a, bigint_word b);
 
-char* bigint_write_base(char *dst, int n, const bigint *a, bigint_word base);
+char* bigint_write_base(
+    char *dst,
+    int *n_dst,
+    const bigint *a,
+    bigint_word base,
+    int zero_terminate
+);
+
+/* convenience function defaults to base 10 and zero terminates */
+char* bigint_write(char *dst, int n_dst, const bigint *a);
 
 bigint* bigint_shift_left(bigint *dst, const bigint *src, int shift);
 bigint* bigint_shift_right(bigint *dst, const bigint *src, int shift);
@@ -90,6 +101,18 @@ bigint* bigint_div_mod(
     bigint *dst_remainder,
     const bigint *src_biginterator,
     const bigint *src_denominator
+);
+
+bigint* bigint_div(
+    bigint *dst,
+    const bigint *numerator,
+    const bigint *denominator
+);
+
+bigint* bigint_mod(
+    bigint *dst,
+    const bigint *numerator,
+    const bigint *denominator
 );
 
 bigint* bigint_div_mod_half_word(
@@ -116,6 +139,8 @@ bigint* bigint_pow_mod(
 int bigint_is_probable_prime(const bigint *n, int n_tests, bigint_rand_func rand_func);
 
 bigint* bigint_pow_word(bigint *dst, const bigint *src, bigint_word exponent);
+
+double bigint_double(const bigint *src);
 
 #ifdef __cplusplus
 }

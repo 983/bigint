@@ -463,7 +463,6 @@ int bigint_write_size(const bigint *a, double dst_base){
 
 bigint* bigint_from_str_base(bigint *dst, const char *src, int src_base){
     int n_digits_src, n_digits_dst;
-    /* yes, this will fit, up to 2^10 bit bigint_words */
     double dst_base = pow(2.0, BIGINT_WORD_BITS);
 
     n_digits_src = bigint_count_digits(src);
@@ -478,9 +477,12 @@ bigint* bigint_from_str_base(bigint *dst, const char *src, int src_base){
     return dst;
 }
 
+bigint* bigint_from_str(bigint *dst, const char *src){
+    return bigint_from_str_base(dst, src, 10);
+}
+
 bigint* bigint_from_int(bigint *dst, int src){
-    /* be careful with -INT_MIN which does not fit into int */
-    unsigned int x = src >= 0 ? src : -src;
+    unsigned int x = BIGINT_INT_ABS(src);
     int n = BIGINT_MAX(1, sizeof(x)/sizeof(bigint_word));
     bigint_reserve(dst, n);
     bigint_raw_zero(dst->words, 0, n);
@@ -769,6 +771,34 @@ bigint* bigint_div_mod(
     return dst_quotient;
 }
 
+bigint* bigint_div(
+    bigint *dst,
+    const bigint *numerator,
+    const bigint *denominator
+){
+    bigint unused[1];
+    bigint_init(unused);
+
+    bigint_div_mod(dst, unused, numerator, denominator);
+
+    bigint_free(unused);
+    return dst;
+}
+
+bigint* bigint_mod(
+    bigint *dst,
+    const bigint *numerator,
+    const bigint *denominator
+){
+    bigint unused[1];
+    bigint_init(unused);
+
+    bigint_div_mod(unused, dst, numerator, denominator);
+
+    bigint_free(unused);
+    return dst;
+}
+
 bigint* bigint_div_mod_half_word(
     bigint *dst,
     bigint_word *dst_remainder,
@@ -892,12 +922,18 @@ bigint* bigint_sqrt(bigint *dst, const bigint *src){
     return dst;
 }
 
-char* bigint_write_base(char *dst, int n, const bigint *a, bigint_word base){
-    int i = 0;
+char* bigint_write_base(
+    char *dst,
+    int *n_dst,
+    const bigint *a,
+    bigint_word base,
+    int zero_terminate
+){
+    int i = 0, n = *n_dst;
     static const char *table = "0123456789abcdefghijklmnopqrstuvwxyz";
     assert(base >= 2 && base <= 36);
 
-    if (i < n) dst[i++] = '\0';
+    if (zero_terminate) if (i < n) dst[i++] = '\0';
 
     if (a->size == 0){
         if (i < n) dst[i++] = '0';
@@ -919,8 +955,13 @@ char* bigint_write_base(char *dst, int n, const bigint *a, bigint_word base){
 
     if (a->neg) if (i < n) dst[i++] = '-';
     BIGINT_REVERSE(char, dst, i);
+    *n_dst = i;
 
     return dst;
+}
+
+char* bigint_write(char *dst, int n_dst, const bigint *a){
+    return bigint_write_base(dst, &n_dst, a, 10, 1);
 }
 
 bigint* bigint_rand_bits(bigint *dst, int n_bits, bigint_rand_func rand_func){
@@ -1079,4 +1120,44 @@ bigint* bigint_pow_word(bigint *dst, const bigint *base, bigint_word exponent){
     bigint_free(p);
     bigint_free(result);
     return dst;
+}
+
+double bigint_double(const bigint *src){
+    /* assumes IEEE 754 floating point standard */
+    int bias = 1023;
+    int n_mant_bits = 52;
+    int n, shift;
+    double d = 0.0;
+    bigint bits[1], exponent[1];
+
+    bigint_init(bits);
+    bigint_init(exponent);
+
+    bigint_cpy(bits, src);
+
+    n = bigint_bitlength(bits) - 1;
+    shift = n_mant_bits - n;
+
+    /* use exactly n_mant_bits + 1 */
+    if (shift > 0) bigint_shift_left (bits, bits, +shift);
+    if (shift < 0) bigint_shift_right(bits, bits, -shift);
+
+    /* this bit is stored implicitely */
+    bigint_clr_bit(bits, n_mant_bits);
+
+    /* calculate exponent */
+    bigint_from_int(exponent, bias + n);
+    bigint_shift_left(exponent, exponent, n_mant_bits);
+
+    /* combine into final bit pattern */
+    exponent->neg = bits->neg;
+    bigint_add(bits, bits, exponent);
+
+    /* put bits into double */
+    memcpy(&d, bits->words, bits->size * sizeof(*bits->words));
+
+    bigint_free(bits);
+    bigint_free(exponent);
+
+    return src->neg ? -d : d;
 }

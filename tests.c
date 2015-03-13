@@ -30,13 +30,13 @@ int main(){
 
     for (i = 0; i < 20; i++) bigint_init(e + i);
 
-    bigint_from_str_base(a, text, 10);
-    bigint_from_str_base(b, "11111111111111111111", 10);
+    bigint_from_str(a, text);
+    bigint_from_str(b, "11111111111111111111");
     bigint_sqrt(c, a);
     assert(bigint_cmp(b, c) == 0);
 
-    bigint_from_str_base(a, "1", 10);
-    bigint_from_str_base(b, "1", 10);
+    bigint_from_str(a, "1");
+    bigint_from_word(b, 1);
     bigint_shift_left(a, a, 1 << 10);
 
     bigint_mul(c, a, a);
@@ -51,8 +51,16 @@ int main(){
 
     bigint_from_str_base(a, text, 10);
 
-    i = strcmp(text, bigint_write_base(buf, sizeof(buf), a, 10));
+    i = strcmp(text, bigint_write(buf, sizeof(buf), a));
     assert(i == 0);
+
+    bigint_from_int(a, INT_MIN);
+    assert(bigint_double(a) == INT_MIN);
+
+    /* max integer value that fits into double without loss of precision */
+    /* pow(2, 53) = 9007199254740992 */
+    bigint_from_str(a, "-9007199254740992");
+    assert(bigint_double(a) == -9007199254740992.0);
 
     for (i = 0; i < 12345; i++){
         int x = rand() % 12345;
@@ -84,7 +92,8 @@ int main(){
         bigint_add(e + 10, a, b);
         bigint_sub(e + 11, a, b);
         bigint_mul(e + 12, a, b);
-        bigint_div_mod(e + 13, e + 14, a, b);
+        bigint_div(e + 13, a, b);
+        bigint_mod(e + 14, a, b);
         bigint_sqrt(e + 15, a);
         bigint_gcd(e + 16, a, b);
 

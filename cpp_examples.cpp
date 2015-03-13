@@ -34,8 +34,8 @@ int main(){
     c.write(std::cout) << std::endl;
     d.write(std::cout) << std::endl;
 
-    // find the biggest probable prime less than 10^50
-    BigInt p = BigInt(10).pow(50) - 1;
+    // find the biggest probable prime less than 10^42
+    BigInt p = BigInt(10).pow(42) - 1;
 
     for (int i = 0; i < 100; i++){
         if (p.is_probable_prime(10, not_secure_random)){

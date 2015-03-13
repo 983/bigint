@@ -12,30 +12,26 @@ int main(){
     /* neat trick to avoid having to write &a, &b, &c everywhere */
     bigint a[1], b[1], c[1];
 
-    /* bigints have to be inited (or memset'ed to 0) */
+    /* bigints have to be initialized (same as memset'ed to zero) */
     bigint_init(a);
     bigint_init(b);
     bigint_init(c);
 
-    /* create bigint from string, bases 2 to 36 are allowed */
-    bigint_from_str_base(a, "123456789", 10);
-    bigint_from_str_base(b, "987654321", 10);
+    /* create bigint from string */
+    bigint_from_str(a, "123456789");
+    bigint_from_str(b, "987654321");
 
     /* c = a * b */
     /* first parameter is destination parameter */
     bigint_mul(c, a, b);
 
-    /* bases 2 to 36 are allowed */
-    bigint_write_base(buf, sizeof(buf), c, 10);
-
-    puts(buf);
+    /* write and print */
+    puts(bigint_write(buf, sizeof(buf), c));
 
     /* bigints have to be free'd */
     bigint_free(a);
     bigint_free(b);
     bigint_free(c);
-
-    /* See tests.c for all possible operations */
 
     return 0;
 }
@@ -56,7 +52,7 @@ uint32_t xorshift32() {
     return x;
 }
 
-// do not use this as a cryptographically secure random bigint generator
+// do not use this as a cryptographically secure random number generator
 void not_secure_random(uint8_t *dst, int n){
     for (int i = 0; i < n; i++) dst[i] = xorshift32();
 }
@@ -79,8 +75,8 @@ int main(){
     c.write(std::cout) << std::endl;
     d.write(std::cout) << std::endl;
 
-    // find the biggest probable prime less than 10^50
-    BigInt p = BigInt(10).pow(50) - 1;
+    // find the biggest probable prime less than 10^42
+    BigInt p = BigInt(10).pow(42) - 1;
 
     for (int i = 0; i < 100; i++){
         if (p.is_probable_prime(10, not_secure_random)){

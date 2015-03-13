@@ -45,15 +45,20 @@ struct BigInt {
             biginterator.data, denominator.data);
     }
 
-    void write(char *buf, int n, int dst_base = 10) const {
-        bigint_write_base(buf, n, data, dst_base);
+    void write(
+        char *dst,
+        int *n_dst,
+        int dst_base = 10,
+        int zero_terminate = 1
+    ) const {
+        bigint_write_base(dst, n_dst, data, dst_base, zero_terminate);
     }
 
     template <class STREAM>
     STREAM& write(STREAM &s, int dst_base = 10) const {
         int n = bigint_write_size(data, dst_base);
         char *buf = (char*)malloc(n);
-        write(buf, n, dst_base);
+        write(buf, &n, dst_base);
         s << buf;
         free(buf);
         return s;
@@ -85,16 +90,12 @@ struct BigInt {
     }
 
     BigInt& operator /= (const BigInt &b){
-        BigInt quotient, remainder;
-        div_mod(quotient, remainder, *this, b);
-        *this = quotient;
+        bigint_div(data, data, b.data);
         return *this;
     }
 
     BigInt& operator %= (const BigInt &b){
-        BigInt quotient, remainder;
-        div_mod(quotient, remainder, *this, b);
-        *this = remainder;
+        bigint_mod(data, data, b.data);
         return *this;
     }
 
@@ -178,45 +179,31 @@ inline BigInt operator -(const BigInt &a){
 }
 
 inline BigInt operator + (const BigInt &a, const BigInt &b){
-    BigInt c;
-    bigint_add(c.data, a.data, b.data);
-    return c;
+    return BigInt(a) += b;
 }
 
 inline BigInt operator - (const BigInt &a, const BigInt &b){
-    BigInt c;
-    bigint_sub(c.data, a.data, b.data);
-    return c;
+    return BigInt(a) -= b;
 }
 
 inline BigInt operator * (const BigInt &a, const BigInt &b){
-    BigInt c;
-    bigint_mul(c.data, a.data, b.data);
-    return c;
+    return BigInt(a) *= b;
 }
 
 inline BigInt operator / (const BigInt &a, const BigInt &b){
-    BigInt quotient, remainder;
-    BigInt::div_mod(quotient, remainder, a, b);
-    return quotient;
+    return BigInt(a) /= b;
 }
 
 inline BigInt operator % (const BigInt &a, const BigInt &b){
-    BigInt quotient, remainder;
-    BigInt::div_mod(quotient, remainder, a, b);
-    return remainder;
+    return BigInt(a) %= b;
 }
 
 inline BigInt operator << (const BigInt &a, int shift){
-    BigInt b;
-    bigint_shift_left(b.data, a.data, shift);
-    return b;
+    return BigInt(a) <<= shift;
 }
 
 inline BigInt operator >> (const BigInt &a, int shift){
-    BigInt b;
-    bigint_shift_right(b.data, a.data, shift);
-    return b;
+    return BigInt(a) >>= shift;
 }
 
 inline bool operator == (const BigInt &a, const BigInt &b){ return bigint_cmp(a.data, b.data) == 0; }
