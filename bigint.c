@@ -1130,6 +1130,8 @@ double bigint_double(const bigint *src){
     double d = 0.0;
     bigint bits[1], exponent[1];
 
+    if (src->size == 0) return 0.0;
+
     bigint_init(bits);
     bigint_init(exponent);
 

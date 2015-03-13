@@ -62,6 +62,13 @@ int main(){
     bigint_from_str(a, "-9007199254740992");
     assert(bigint_double(a) == -9007199254740992.0);
 
+    bigint_from_int(a, 0);
+    assert(bigint_double(a) == 0.0);
+    bigint_from_int(a, +1);
+    assert(bigint_double(a) == +1);
+    bigint_from_int(a, -1);
+    assert(bigint_double(a) == -1);
+
     for (i = 0; i < 12345; i++){
         int x = rand() % 12345;
         int y = rand() % 12345;
