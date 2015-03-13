@@ -187,6 +187,15 @@ void bigint_raw_zero(bigint_word *dst, int from, int to){
     memset(dst + from, 0, (to - from) * sizeof(*dst));
 }
 
+bigint* bigint_set_neg(bigint *dst, int neg){
+    dst->neg = neg;
+    return dst;
+}
+
+bigint* bigint_negate(bigint *dst){
+    return bigint_set_neg(dst, !dst->neg);
+}
+
 int bigint_raw_cpy(bigint_word *dst, const bigint_word *src, int n){
     memcpy(dst, src, n * sizeof(*src));
     return n;
@@ -196,9 +205,8 @@ bigint* bigint_cpy(bigint *dst, const bigint *src){
     if (src == dst) return dst;
     bigint_reserve(dst, src->size);
     dst->size = bigint_raw_cpy(dst->words, src->words, src->size);
-    dst->neg = src->neg;
-    assert(bigint_cmp(src, dst) == 0);
-    return dst;
+    assert(bigint_cmp_abs(src, dst) == 0);
+    return bigint_set_neg(dst, src->neg);
 }
 
 int bigint_raw_truncate(const bigint_word *a, int n){
@@ -483,8 +491,7 @@ bigint* bigint_mul(bigint *dst, const bigint *a, const bigint *b){
         free(tmp);
     }
 
-    dst->neg = a->neg ^ b->neg;
-    return dst;
+    return bigint_set_neg(dst, a->neg ^ b->neg);
 }
 
 int bigint_digits_bound(int n_digits_src, double src_base, double dst_base){
@@ -510,8 +517,7 @@ bigint* bigint_from_str_base(bigint *dst, const char *src, int src_base){
     bigint_raw_zero(dst->words, 0, n_digits_dst);
 
     dst->size = bigint_raw_from_str_base(dst->words, src, src_base);
-    dst->neg = *src == '-';
-    return dst;
+    return bigint_set_neg(dst, *src == '-');
 }
 
 bigint* bigint_from_str(bigint *dst, const char *src){
@@ -524,17 +530,15 @@ bigint* bigint_from_int(bigint *dst, int src){
     bigint_reserve(dst, n);
     bigint_raw_zero(dst->words, 0, n);
     memcpy(dst->words, &x, sizeof(x));
-    dst->neg = src < 0;
     dst->size = bigint_raw_truncate(dst->words, n);
-    return dst;
+    return bigint_set_neg(dst, src < 0);
 }
 
 bigint* bigint_from_word(bigint *dst, bigint_word a){
     bigint_reserve(dst, 1);
-    dst->neg = 0;
     dst->words[0] = a;
     dst->size = bigint_raw_truncate(dst->words, 1);
-    return dst;
+    return bigint_set_neg(dst, 0);
 }
 
 int bigint_raw_add_signed(
@@ -719,15 +723,13 @@ bigint* bigint_shift_left(bigint *dst, const bigint *src, int shift){
     int n = src->size + shift / BIGINT_WORD_BITS + (shift % BIGINT_WORD_BITS != 0);
     bigint_reserve(dst, n);
     dst->size = bigint_raw_shift_left(dst->words, src->words, src->size, shift);
-    dst->neg = src->neg;
-    return dst;
+    return bigint_set_neg(dst, src->neg);
 }
 
 bigint* bigint_shift_right(bigint *dst, const bigint *src, int shift){
     bigint_reserve(dst, src->size);
     dst->size = bigint_raw_shift_right(dst->words, src->words, src->size, shift);
-    dst->neg = src->neg;
-    return dst;
+    return bigint_set_neg(dst, src->neg);
 }
 
 int bigint_bitlength(const bigint *a){
@@ -878,17 +880,8 @@ bigint* bigint_gcd(bigint *dst, const bigint *src_a, const bigint *src_b){
     int shift, shift_a, shift_b;
     bigint a[1], b[1];
 
-    if (src_a->size == 0){
-        bigint_cpy(dst, src_b);
-        dst->neg = 0;
-        return dst;
-    }
-
-    if (src_b->size == 0){
-        bigint_cpy(dst, src_a);
-        dst->neg = 0;
-        return dst;
-    }
+    if (src_a->size == 0) return bigint_set_neg(bigint_cpy(dst, src_b), 0);
+    if (src_b->size == 0) return bigint_set_neg(bigint_cpy(dst, src_a), 0);
 
     if (src_a->size == 1 && src_b->size == 1){
         bigint_word word = bigint_word_gcd(src_a->words[0], src_b->words[0]);
