@@ -742,10 +742,14 @@ bigint* bigint_shift_right(bigint *dst, const bigint *src, unsigned shift){
     return bigint_set_neg(dst, src->neg);
 }
 
-int bigint_bitlength(const bigint *a){
-    int last = a->size - 1;
+int bigint_raw_bitlength(const bigint_word *src_a, int na){
+    int last = na - 1;
     if (last < 0) return 0;
-    return bigint_word_bitlength(a->words[last]) + last*BIGINT_WORD_BITS;
+    return bigint_word_bitlength(src_a[last]) + last*BIGINT_WORD_BITS;
+}
+
+int bigint_bitlength(const bigint *a){
+    return bigint_raw_bitlength(a->words, a->size);
 }
 
 int bigint_count_trailing_zeros(const bigint *a){
@@ -1171,44 +1175,37 @@ bigint* bigint_pow_word(bigint *dst, const bigint *base, bigint_word exponent){
     return dst;
 }
 
+void bigint_raw_get_high_bits(
+    bigint_word *dst, int n_dst,
+    const bigint_word *src_a, int na,
+    int n_bits,
+    int *n_bitlength
+){
+    int shift;
+    *n_bitlength = bigint_raw_bitlength(src_a, na);
+    shift = n_bits - *n_bitlength + 1;
+
+    if (shift < 0) bigint_raw_shift_right(dst, n_dst, src_a, na, -shift);
+    else           bigint_raw_shift_left (dst, n_dst, src_a, na, +shift);
+}
+
 double bigint_double(const bigint *src){
     /* assumes IEEE 754 floating point standard */
-    int bias = 1023;
-    int n_mant_bits = 52;
-    int n, shift;
-    double d = 0.0;
-    bigint bits[1], exponent[1];
+    int n, n_mant_bits = 52;
+    uint64_t x = 0, exponent = 1023;
+    double d;
+    bigint_word tmp[20];
 
     if (src->size == 0) return 0.0;
 
-    bigint_init(bits);
-    bigint_init(exponent);
-
-    bigint_cpy(bits, src);
-
-    n = bigint_bitlength(bits) - 1;
-    shift = n_mant_bits - n;
-
-    /* use exactly n_mant_bits + 1 */
-    if (shift > 0) bigint_shift_left (bits, bits, +shift);
-    if (shift < 0) bigint_shift_right(bits, bits, -shift);
-
+    bigint_raw_get_high_bits(tmp, 20, src->words, src->size, n_mant_bits, &n);
     /* this bit is stored implicitely */
-    bigint_clr_bit(bits, n_mant_bits);
+    bigint_raw_clr_bit(tmp, n_mant_bits);
+    exponent--;
+    exponent += n;
+    memcpy(&x, tmp, sizeof(x));
+    x |= exponent << n_mant_bits;
 
-    /* calculate exponent */
-    bigint_from_int(exponent, bias + n);
-    bigint_shift_left(exponent, exponent, n_mant_bits);
-
-    /* combine into final bit pattern */
-    exponent->neg = bits->neg;
-    bigint_add(bits, bits, exponent);
-
-    /* put bits into double */
-    memcpy(&d, bits->words, bits->size * sizeof(*bits->words));
-
-    bigint_free(bits);
-    bigint_free(exponent);
-
+    memcpy(&d, &x, sizeof(d));
     return src->neg ? -d : d;
 }
