@@ -214,17 +214,15 @@ int bigint_raw_truncate(const bigint_word *a, int n){
     return n;
 }
 
-int bigint_raw_clr_bit(bigint_word *dst, int n_dst, unsigned bit_index){
+void bigint_raw_clr_bit(bigint_word *dst, unsigned bit_index){
     unsigned word_index = bit_index / BIGINT_WORD_BITS;
     bit_index %= BIGINT_WORD_BITS;
-
     dst[word_index] &= BIGINT_WORD_MAX ^ (((bigint_word)1) << bit_index);
-
-    return bigint_raw_truncate(dst, n_dst);
 }
 
 bigint* bigint_clr_bit(bigint *dst, unsigned bit_index){
-    dst->size = bigint_raw_clr_bit(dst->words, dst->size, bit_index);
+    bigint_raw_clr_bit(dst->words, bit_index);
+    dst->size = bigint_raw_truncate(dst->words, dst->size);
     return dst;
 }
 
