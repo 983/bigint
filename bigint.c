@@ -181,6 +181,10 @@ int bigint_cmp(const bigint *a, const bigint *b){
 }
 
 int bigint_cmp_abs_word(const bigint *a, bigint_word b){
+    if (b == 0){
+        if (a->size == 0) return 0;
+        return a->neg ? -1 : +1;
+    }
     return bigint_raw_cmp_abs(a->words, a->size, &b, 1);
 }
 
