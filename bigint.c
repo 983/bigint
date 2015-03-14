@@ -93,7 +93,7 @@ int bigint_word_bitlength(bigint_word a){
 
 int bigint_word_count_trailing_zeros(bigint_word a){
     int i;
-    for (i = 0; i < BIGINT_WORD_BITS; i++) if ((a >> i) & 1) return i;
+    for (i = 0; i < (int)BIGINT_WORD_BITS; i++) if ((a >> i) & 1) return i;
     return BIGINT_WORD_BITS;
 }
 
@@ -214,19 +214,21 @@ int bigint_raw_truncate(const bigint_word *a, int n){
     return n;
 }
 
-bigint* bigint_clr_bit(bigint *dst, int bit_index){
-    int word_index = bit_index / BIGINT_WORD_BITS;
+int bigint_raw_clr_bit(bigint_word *dst, int n_dst, unsigned bit_index){
+    unsigned word_index = bit_index / BIGINT_WORD_BITS;
     bit_index %= BIGINT_WORD_BITS;
 
-    if (word_index >= dst->size) return dst;
+    dst[word_index] &= BIGINT_WORD_MAX ^ (((bigint_word)1) << bit_index);
 
-    dst->words[word_index] &= BIGINT_WORD_MAX ^ (((bigint_word)1) << bit_index);
+    return bigint_raw_truncate(dst, n_dst);
+}
 
-    dst->size = bigint_raw_truncate(dst->words, dst->size);
+bigint* bigint_clr_bit(bigint *dst, unsigned bit_index){
+    dst->size = bigint_raw_clr_bit(dst->words, dst->size, bit_index);
     return dst;
 }
 
-bigint* bigint_set_bit(bigint *dst, int bit_index){
+bigint* bigint_set_bit(bigint *dst, unsigned bit_index){
     int word_index = bit_index / BIGINT_WORD_BITS;
     int n = word_index + 1;
 
@@ -238,7 +240,7 @@ bigint* bigint_set_bit(bigint *dst, int bit_index){
     return dst;
 }
 
-bigint_word bigint_get_bit(const bigint *src, int bit_index){
+bigint_word bigint_get_bit(const bigint *src, unsigned bit_index){
     int i = bit_index / BIGINT_WORD_BITS;
 
     if (src->size <= i) return 0;
@@ -642,7 +644,7 @@ bigint* bigint_sub_word(bigint *dst, const bigint *src_a, bigint_word b){
 int bigint_raw_shift_left(
     bigint_word *dst,
     const bigint_word *src, int n_src,
-    int shift
+    unsigned shift
 ){
     int i;
     int word_shift = shift / BIGINT_WORD_BITS;
@@ -719,14 +721,14 @@ int bigint_raw_shift_right(
     }
 }
 
-bigint* bigint_shift_left(bigint *dst, const bigint *src, int shift){
-    int n = src->size + shift / BIGINT_WORD_BITS + (shift % BIGINT_WORD_BITS != 0);
+bigint* bigint_shift_left(bigint *dst, const bigint *src, unsigned shift){
+    unsigned n = src->size + shift / BIGINT_WORD_BITS + (shift % BIGINT_WORD_BITS != 0);
     bigint_reserve(dst, n);
     dst->size = bigint_raw_shift_left(dst->words, src->words, src->size, shift);
     return bigint_set_neg(dst, src->neg);
 }
 
-bigint* bigint_shift_right(bigint *dst, const bigint *src, int shift){
+bigint* bigint_shift_right(bigint *dst, const bigint *src, unsigned shift){
     bigint_reserve(dst, src->size);
     dst->size = bigint_raw_shift_right(dst->words, src->words, src->size, shift);
     return bigint_set_neg(dst, src->neg);

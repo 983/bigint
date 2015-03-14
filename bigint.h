@@ -13,7 +13,7 @@ typedef uint32_t bigint_word;
 
 #define BIGINT_KARATSUBA_WORD_THRESHOLD 20
 
-#define BIGINT_WORD_BITS ((int)(sizeof(bigint_word) * CHAR_BIT))
+#define BIGINT_WORD_BITS ((sizeof(bigint_word) * CHAR_BIT))
 #define BIGINT_WORD_MAX ((bigint_word)-1)
 #define BIGINT_HALF_WORD_MAX (BIGINT_WORD_MAX >> BIGINT_WORD_BITS / 2)
 
@@ -66,9 +66,10 @@ bigint* bigint_negate(bigint *dst);
 
 bigint* bigint_cpy(bigint *dst, const bigint *src);
 
-bigint*     bigint_clr_bit(bigint *dst, int bit_index);
-bigint*     bigint_set_bit(bigint *dst, int bit_index);
-bigint_word bigint_get_bit(const bigint *src, int bit_index);
+bigint*     bigint_clr_bit(bigint *dst, unsigned bit_index);
+bigint*     bigint_set_bit(bigint *dst, unsigned bit_index);
+bigint_word bigint_get_bit(const bigint *src, unsigned bit_index);
+
 bigint* bigint_mul(bigint *dst, const bigint *a, const bigint *b);
 
 int bigint_count_digits(const char *src);
@@ -97,8 +98,8 @@ char* bigint_write_base(
 /* convenience function defaults to base 10 and zero terminates */
 char* bigint_write(char *dst, int n_dst, const bigint *a);
 
-bigint* bigint_shift_left(bigint *dst, const bigint *src, int shift);
-bigint* bigint_shift_right(bigint *dst, const bigint *src, int shift);
+bigint* bigint_shift_left (bigint *dst, const bigint *src, unsigned shift);
+bigint* bigint_shift_right(bigint *dst, const bigint *src, unsigned shift);
 
 int bigint_bitlength(const bigint *a);
 int bigint_count_trailing_zeros(const bigint *a);
