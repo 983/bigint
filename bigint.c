@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define BIGINT_ASSERT(a, op, b) assert((a) op (b));
+
 /* low bits of a * b */
 bigint_word bigint_word_mul_lo(bigint_word a, bigint_word b){
     return a * b;
@@ -131,7 +133,7 @@ bigint* bigint_reserve(bigint *dst, int capacity){
     dst->words = (bigint_word*)realloc(dst->words, capacity * sizeof(*dst->words));
     /* out of memory? sorry :( */
     assert(dst->words != NULL);
-    assert(dst->size <= capacity);
+    BIGINT_ASSERT(dst->size, <=, capacity);
     return dst;
 }
 
@@ -149,7 +151,7 @@ int bigint_raw_cmp_abs(
     if (na > nb) return +1;
     if (na < nb) return -1;
 
-    assert(na == nb);
+    BIGINT_ASSERT(na, ==, nb);
     for (i = na - 1; i >= 0; i--){
         if (a[i] < b[i]) return -1;
         if (a[i] > b[i]) return +1;
@@ -205,7 +207,7 @@ bigint* bigint_cpy(bigint *dst, const bigint *src){
     if (src == dst) return dst;
     bigint_reserve(dst, src->size);
     dst->size = bigint_raw_cpy(dst->words, src->words, src->size);
-    assert(bigint_cmp_abs(src, dst) == 0);
+    BIGINT_ASSERT(bigint_cmp_abs(src, dst), ==, 0);
     return bigint_set_neg(dst, src->neg);
 }
 
@@ -385,8 +387,8 @@ int bigint_raw_sub(
 ){
     bigint_word dif, carry = 0;
     int i;
-    assert(na >= nb);
-    assert(bigint_raw_cmp_abs(src_a, na, src_b, nb) >= 0);
+    BIGINT_ASSERT(na, >=, nb);
+    BIGINT_ASSERT(bigint_raw_cmp_abs(src_a, na, src_b, nb), >=, 0);
 
     for (i = 0; i < nb; i++){
         carry  = bigint_word_sub_get_carry(&dif, src_a[i], carry);
@@ -398,7 +400,7 @@ int bigint_raw_sub(
         carry = bigint_word_sub_get_carry(&dst[i], src_a[i], carry);
     }
 
-    assert(!carry);
+    BIGINT_ASSERT(carry, ==, 0);
     return bigint_raw_truncate(dst, i);
 }
 
@@ -640,7 +642,7 @@ bigint* bigint_sub_word(bigint *dst, const bigint *src_a, bigint_word b){
 }
 
 int bigint_raw_shift_left(
-    bigint_word *dst,
+    bigint_word *dst, int n_dst,
     const bigint_word *src, int n_src,
     unsigned shift
 ){
@@ -653,34 +655,45 @@ int bigint_raw_shift_left(
 
         for (i = n_src + word_shift; i > word_shift; i--){
             lo = src[i - word_shift - 1];
+            BIGINT_ASSERT(i, >=, 0);
+            BIGINT_ASSERT(i, <, n_dst);
             dst[i] = (hi << bits_shift) | (lo >> (BIGINT_WORD_BITS - bits_shift));
             hi = lo;
         }
 
         for (i = word_shift; i >= 0; i--){
-            lo = 0;
-            dst[i] = (hi << bits_shift) | (lo >> (BIGINT_WORD_BITS - bits_shift));
-            hi = lo;
+            BIGINT_ASSERT(i, >=, 0);
+            BIGINT_ASSERT(i, <, n_dst);
+            dst[i] = hi << bits_shift;
+            hi = 0;
         }
 
-        return bigint_raw_truncate(dst, n_src + word_shift + 1);
+        i = n_src + word_shift + 1;
+        BIGINT_ASSERT(i, <=, n_dst);
+        return bigint_raw_truncate(dst, i);
     }else{
         /* this case is not only separate because of performance */
         /* but (lo >> (BIGINT_WORD_BITS - 0)) is also undefined behaviour */
         for (i = n_src + word_shift - 1; i >= word_shift; i--){
+            BIGINT_ASSERT(i, >=, 0);
+            BIGINT_ASSERT(i, <, n_dst);
             dst[i] = src[i - word_shift];
         }
 
         for (i = word_shift - 1; i >= 0; i--){
+            BIGINT_ASSERT(i, >=, 0);
+            BIGINT_ASSERT(i, <, n_dst);
             dst[i] = 0;
         }
 
-        return bigint_raw_truncate(dst, n_src + word_shift);
+        i = n_src + word_shift;
+        BIGINT_ASSERT(i, <=, n_dst);
+        return bigint_raw_truncate(dst, i);
     }
 }
 
 int bigint_raw_shift_right(
-    bigint_word *dst,
+    bigint_word *dst, int n_dst,
     const bigint_word *src, int n_src,
     int shift
 ){
@@ -693,42 +706,39 @@ int bigint_raw_shift_right(
 
         for (i = 0; i < n_src - word_shift - 1; i++){
             hi = src[i + word_shift + 1];
+            BIGINT_ASSERT(i, <, n_dst);
             dst[i] = (hi << (BIGINT_WORD_BITS - bits_shift)) | (lo >> bits_shift);
             lo = hi;
         }
 
-        for (i = BIGINT_MAX(n_src - word_shift - 1, 0); i < n_src; i++){
-            hi = 0;
-            dst[i] = (hi << (BIGINT_WORD_BITS - bits_shift)) | (lo >> bits_shift);
-            lo = hi;
-        }
+        BIGINT_ASSERT(i, <, n_dst);
+        dst[i++] = lo >> bits_shift;
 
-        return bigint_raw_truncate(dst, n_src);
+        BIGINT_ASSERT(i, <=, n_dst);
+        return bigint_raw_truncate(dst, i);
     }else{
         /* this case is not only separate because of performance */
         /* but (hi << (BIGINT_WORD_BITS - 0)) is also undefined behaviour */
         for (i = 0; i < n_src - word_shift; i++){
+            BIGINT_ASSERT(i, <, n_dst);
             dst[i] = src[i + word_shift];
         }
 
-        for (i = BIGINT_MAX(n_src - word_shift, 0); i < n_src; i++){
-            dst[i] = 0;
-        }
-
-        return bigint_raw_truncate(dst, BIGINT_MAX(n_src - word_shift, 0));
+        BIGINT_ASSERT(i, <=, n_dst);
+        return bigint_raw_truncate(dst, i);
     }
 }
 
 bigint* bigint_shift_left(bigint *dst, const bigint *src, unsigned shift){
     unsigned n = src->size + shift / BIGINT_WORD_BITS + (shift % BIGINT_WORD_BITS != 0);
     bigint_reserve(dst, n);
-    dst->size = bigint_raw_shift_left(dst->words, src->words, src->size, shift);
+    dst->size = bigint_raw_shift_left(dst->words, dst->capacity, src->words, src->size, shift);
     return bigint_set_neg(dst, src->neg);
 }
 
 bigint* bigint_shift_right(bigint *dst, const bigint *src, unsigned shift){
     bigint_reserve(dst, src->size);
-    dst->size = bigint_raw_shift_right(dst->words, src->words, src->size, shift);
+    dst->size = bigint_raw_shift_right(dst->words, dst->capacity, src->words, src->size, shift);
     return bigint_set_neg(dst, src->neg);
 }
 
@@ -849,8 +859,8 @@ bigint* bigint_div_mod_half_word(
     int i, j;
     bigint_word parts[2], div_word, mod_word, remainder = 0;
 
-    assert(denominator != 0);
-    assert(denominator <= BIGINT_HALF_WORD_MAX);
+    BIGINT_ASSERT(denominator, !=, 0);
+    BIGINT_ASSERT(denominator, <=, BIGINT_HALF_WORD_MAX);
 
     for (i = dst->size - 1; i >= 0; i--){
         bigint_word dst_word = 0;
@@ -969,7 +979,8 @@ char* bigint_write_base(
 ){
     int i = 0, n = *n_dst;
     static const char *table = "0123456789abcdefghijklmnopqrstuvwxyz";
-    assert(base >= 2 && base <= 36);
+    BIGINT_ASSERT(base, >=, 2);
+    BIGINT_ASSERT(base, <=, 36);
 
     if (zero_terminate) if (i < n) dst[i++] = '\0';
 
