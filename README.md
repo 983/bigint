@@ -1,3 +1,5 @@
+Discontinued in favour of https://github.com/983/Num
+
 # bigint
 
 C usage example:
