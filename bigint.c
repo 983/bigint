@@ -1112,7 +1112,9 @@ int bigint_is_probable_prime(
     /* divisible by 2, not prime */
     if (bigint_get_bit(n, 0) == 0) return 0;
 
-    /* 1, 3 are prime */
+    /* 1 is not prime */
+    if (bigint_cmp_abs_word(n, 1) <= 0) return 0;
+    /* 3 is prime */
     if (bigint_cmp_abs_word(n, 3) <= 0) return 1;
 
     bigint_init(a);
